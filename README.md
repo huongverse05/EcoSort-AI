@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Intelligent waste segregation system
 This project demonstrates waste detection using a YOLOv8 (You Only Look Once) object detection model. It identifies recyclable, non-recyclable, and hazardous waste items in a webcam stream.
 
@@ -50,3 +51,6 @@ Open your web browser and navigate to the provided URL (usually http://localhost
 - [Streamlit Documentation](https://docs.streamlit.io/)
 - [YOLO Documentation](https://github.com/ultralytics/yolov5)
 
+=======
+# EcoSort-AI
+>>>>>>> 2e45344ea446d6c5fbb3c9ddf8742a8160d9931b
