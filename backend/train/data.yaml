@@ -1,0 +1,28 @@
+path: D:/Đồ án chuyên ngành 1/waste-detection-main/backend/train/datasets
+
+train: images/train
+val: images/val
+
+names:
+  0: cardboard_box
+  1: can
+  2: plastic_bottle_cap
+  3: plastic_bottle
+  4: reuseable_paper
+  5: plastic_bag
+  6: scrap_paper
+  7: stick
+  8: plastic_cup
+  9: snack_bag
+  10: plastic_box
+  11: straw
+  12: plastic_cup_lid
+  13: scrap_plastic
+  14: cardboard_bowl
+  15: plastic_cultery
+  16: battery
+  17: chemical_spray_can
+  18: chemical_plastic_bottle
+  19: chemical_plastic_gallon
+  20: light_bulb
+  21: paint_bucket
