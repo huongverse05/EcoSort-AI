@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
@@ -14,11 +14,14 @@ export default function Scan({ user }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [realtime, setRealtime] = useState(false);
+  const [isPredicting, setIsPredicting] = useState(false);
+
   const chooseFile = (e) => {
     const img = e.target.files[0];
-
     if (!img) return;
 
+    setRealtime(false);
     setFile(img);
     setPreview(URL.createObjectURL(img));
     setResult(null);
@@ -32,6 +35,7 @@ export default function Scan({ user }) {
       return;
     }
 
+    setRealtime(false);
     setPreview(imageSrc);
 
     const blob = await fetch(imageSrc).then((res) => res.blob());
@@ -45,6 +49,7 @@ export default function Scan({ user }) {
   };
 
   const resetScan = () => {
+    setRealtime(false);
     setFile(null);
     setPreview(null);
     setResult(null);
@@ -65,7 +70,6 @@ export default function Scan({ user }) {
 
   const saveHistoryToLocalStorage = (data) => {
     const historyKey = user?.uid ? `history_${user.uid}` : "history_guest";
-
     const history = JSON.parse(localStorage.getItem(historyKey)) || [];
 
     history.unshift({
@@ -88,11 +92,11 @@ export default function Scan({ user }) {
       setLoading(true);
 
       const data = await predictWasteImage(file);
-
       setResult(data);
 
       saveHistoryToLocalStorage(data);
 
+      // Nếu Firestore đang lỗi quyền thì có thể comment dòng này
       await saveHistoryToFirestore(data);
     } catch (error) {
       console.error("SCAN ERROR:", error);
@@ -102,11 +106,49 @@ export default function Scan({ user }) {
     }
   };
 
+  const analyzeRealtimeFrame = async () => {
+    if (!webcamRef.current || isPredicting) return;
+
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) return;
+
+    try {
+      setIsPredicting(true);
+
+      const blob = await fetch(imageSrc).then((res) => res.blob());
+
+      const webcamFile = new File([blob], "realtime-frame.jpg", {
+        type: "image/jpeg",
+      });
+
+      const data = await predictWasteImage(webcamFile);
+
+      setPreview(imageSrc);
+      setResult(data);
+
+      // Không lưu lịch sử realtime để tránh spam Firebase
+    } catch (error) {
+      console.error("REALTIME SCAN ERROR:", error);
+    } finally {
+      setIsPredicting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode !== "camera" || !realtime) return;
+
+    const interval = setInterval(() => {
+      analyzeRealtimeFrame();
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [mode, realtime, isPredicting]);
+
   return (
     <main className="scan-page">
       <div className="scan-left">
         <h1>Nhận Diện Rác Thải</h1>
-        <p>Tải ảnh lên hoặc chụp trực tiếp để AI phân loại giúp bạn.</p>
+        <p>Tải ảnh lên, chụp webcam hoặc bật realtime để AI phân loại giúp bạn.</p>
 
         <div className="scan-tabs">
           <button
@@ -149,40 +191,64 @@ export default function Scan({ user }) {
           </label>
         ) : (
           <div className="webcam-zone">
-            {preview ? (
-              <img src={preview} alt="webcam-preview" className="preview" />
-            ) : (
-              <Webcam
-                ref={webcamRef}
-                audio={false}
-                screenshotFormat="image/jpeg"
-                className="webcam"
-                videoConstraints={{
-                  facingMode: "environment",
-                }}
-              />
-            )}
+            <Webcam
+              ref={webcamRef}
+              audio={false}
+              screenshotFormat="image/jpeg"
+              className="webcam"
+              videoConstraints={{
+                facingMode: "environment",
+              }}
+            />
 
-            <button type="button" className="camera-btn" onClick={captureWebcam}>
-              📸 Chụp ảnh
-            </button>
-
-            {preview && (
-              <button type="button" className="secondary-btn" onClick={resetScan}>
-                🔄 Chụp lại
+            <div className="webcam-actions">
+              <button
+                type="button"
+                className="camera-btn"
+                onClick={captureWebcam}
+                disabled={realtime}
+              >
+                📸 Chụp ảnh
               </button>
+
+              <button
+                type="button"
+                className="camera-btn"
+                onClick={() => {
+                  setRealtime((prev) => !prev);
+                  setFile(null);
+                  setPreview(null);
+                  setResult(null);
+                }}
+              >
+                {realtime ? "⏸ Dừng realtime" : "▶️ Bật realtime"}
+              </button>
+
+              {(preview || result) && (
+                <button type="button" className="secondary-btn" onClick={resetScan}>
+                  🔄 Làm mới
+                </button>
+              )}
+            </div>
+
+            {realtime && (
+              <p className="realtime-status">
+                {isPredicting ? "Đang nhận diện..." : "Realtime đang bật"}
+              </p>
             )}
           </div>
         )}
 
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={analyze}
-          disabled={!file || loading}
-        >
-          {loading ? "Đang phân tích..." : "🔍 Phân tích ngay"}
-        </button>
+        {mode === "upload" || (mode === "camera" && !realtime) ? (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={analyze}
+            disabled={!file || loading}
+          >
+            {loading ? "Đang phân tích..." : "🔍 Phân tích ngay"}
+          </button>
+        ) : null}
 
         <div className="tips-grid">
           <div>
@@ -214,9 +280,12 @@ export default function Scan({ user }) {
 
                 <div className="info-row">✅ Loại: {result.type}</div>
                 <div className="info-row">⚠️ {result.guide}</div>
-                <div className="info-row">
-                  🌱 Kết quả đã được lưu vào lịch sử
-                </div>
+
+                {realtime ? (
+                  <div className="info-row">📷 Kết quả realtime, chưa lưu lịch sử</div>
+                ) : (
+                  <div className="info-row">🌱 Kết quả đã được lưu vào lịch sử</div>
+                )}
 
                 <button type="button" className="primary-btn" onClick={resetScan}>
                   Quét ảnh mới
@@ -226,7 +295,9 @@ export default function Scan({ user }) {
           ) : (
             <div className="empty-result">
               <h2>Kết quả nhận diện</h2>
-              <p>Vui lòng tải ảnh hoặc chụp webcam để AI phân tích.</p>
+              <p>
+                Vui lòng tải ảnh, chụp webcam hoặc bật realtime để AI phân tích.
+              </p>
             </div>
           )}
         </div>

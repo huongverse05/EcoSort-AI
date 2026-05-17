@@ -9,7 +9,7 @@ import Guide from "./pages/Guide";
 import Statistics from "./pages/Statistics";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-
+import Leaderboard from "./pages/Leaderboard";
 import "./App.css";
 
 export default function App() {
@@ -34,6 +34,8 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         <Route path="/scan" element={<Scan user={user} />} />
+
+        <Route path="/leaderboard" element={<Leaderboard user={user} />} />
 
         <Route
         path="/history"

@@ -198,6 +198,34 @@ export default function Statistics() {
       alert("Lỗi xóa user.");
     }
   };
+  const maxValue = Math.max(recyclable, nonRecyclable, hazardous, 1);
+
+  let step = 2;
+  let chartMax = 10;
+
+  if (maxValue <= 10) {
+    step = 2;
+    chartMax = 10;
+  } else if (maxValue <= 50) {
+    step = 10;
+    chartMax = Math.ceil(maxValue / 10) * 10 + 20;
+  } else if (maxValue <= 100) {
+    step = 20;
+    chartMax = Math.ceil(maxValue / 20) * 20 + 20;
+  } else {
+    step = 50;
+    chartMax = Math.ceil(maxValue / 50) * 50 + 50;
+  }
+
+  const yAxisLabels = [];
+
+  for (let value = chartMax; value >= 0; value -= step) {
+    yAxisLabels.push(value);
+  }
+
+  const getBarHeight = (value) => {
+    return `${(value / chartMax) * 100}%`;
+  };
 
   return (
     <main className="admin-page">
@@ -220,8 +248,10 @@ export default function Statistics() {
           Xuất báo cáo
         </button>
       </div>
+      
 
       {/* STATS */}
+  
 
       <section className="admin-stats">
         <div className="admin-stat-card">
@@ -258,6 +288,57 @@ export default function Statistics() {
       </section>
 
       {/* GRID */}
+
+      <section className="trash-bar-section">
+          <h2>Thống kê số lượng rác theo từng loại</h2>
+
+          <div className="chart-wrapper">
+            <div className="y-axis">
+              {yAxisLabels.map((label) => (
+                <div className="y-label" key={label}>
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            <div className="chart-area">
+              <div className="grid-lines">
+                {yAxisLabels.map((label) => (
+                  <div key={label} className="grid-line"></div>
+              ))}
+            </div>
+
+            <div className="bars">
+              <div className="bar-group">
+                <div className="bar-value">{recyclable}</div>
+                <div
+                  className="bar recyclable-bar"
+                  style={{ height: getBarHeight(recyclable) }}
+                ></div>
+                <p>TÁI CHẾ</p>
+              </div>
+
+              <div className="bar-group">
+                <div className="bar-value">{nonRecyclable}</div>
+                <div
+                  className="bar non-recyclable-bar"
+                  style={{ height: getBarHeight(nonRecyclable) }}
+                ></div>
+                <p>KHÔNG TÁI CHẾ</p>
+              </div>
+
+              <div className="bar-group">
+                <div className="bar-value">{hazardous}</div>
+                <div
+                  className="bar hazardous-bar"
+                  style={{ height: getBarHeight(hazardous) }}
+                ></div>
+                <p>NGUY HẠI</p>
+              </div>
+            </div>
+          </div>
+        </div>  
+      </section>
 
       <section className="admin-grid">
         {/* LEFT */}
@@ -317,7 +398,7 @@ export default function Statistics() {
             <span>{unknown}</span>
           </div>
         </div>
-
+        
         {/* RIGHT */}
 
         <div className="admin-card">

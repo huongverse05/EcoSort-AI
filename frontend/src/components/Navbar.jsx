@@ -2,6 +2,8 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 export default function Navbar({ user, setUser }) {
   const navigate = useNavigate();
+  const navClass = ({ isActive }) =>
+  isActive ? "active-link" : "";
 
   const logout = () => {
     localStorage.removeItem("currentUser");
@@ -25,6 +27,10 @@ export default function Navbar({ user, setUser }) {
           {user && <NavLink to="/history">Lịch Sử</NavLink>}
 
           <NavLink to="/guide">Hướng Dẫn</NavLink>
+
+          {user && (
+            <NavLink to="/leaderboard" className={navClass}>Bảng Xếp Hạng</NavLink>
+          )}
 
           {user?.role === "admin" && (
             <NavLink to="/statistics">Thống Kê</NavLink>
